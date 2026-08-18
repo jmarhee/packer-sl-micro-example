@@ -25,10 +25,16 @@ To run the build:
 make vmdk
 ```
 
-On x86_64 Linux:
+On x86_64 Linux, `make` uses `kvm` when `/dev/kvm` exists and the first OVMF CODE/VARS pair it finds. There is no single distro path (see `vmdk/variables.pkr.hcl`):
+
+- SUSE / openSUSE: `/usr/share/qemu/ovmf-x86_64-code.bin` and `ovmf-x86_64-vars.bin`
+- Fedora / RHEL: `/usr/share/edk2/ovmf/OVMF_CODE.fd` and `OVMF_VARS.fd`
+- Debian / Ubuntu: `/usr/share/OVMF/OVMF_CODE_4M.fd` and `OVMF_VARS_4M.fd`
+
+Override if needed:
 
 ```bash
-make vmdk PACKER_ARGS='-var accelerator=kvm'
+make vmdk EFI_CODE=/usr/share/qemu/ovmf-x86_64-code.bin EFI_VARS=/usr/share/qemu/ovmf-x86_64-vars.bin
 ```
 
 Output vmdk image path:

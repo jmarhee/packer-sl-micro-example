@@ -1,4 +1,27 @@
-# Override with -var or a .pkrvars.hcl file.
+# Override with -var, a .pkrvars.hcl file, or `make` (which picks the first
+# firmware files that exist and uses kvm when /dev/kvm is present).
+#
+# There is no single Linux OVMF path. Common CODE / VARS pairs:
+#
+#   SUSE / openSUSE (qemu-ovmf-x86_64):
+#     /usr/share/qemu/ovmf-x86_64-code.bin
+#     /usr/share/qemu/ovmf-x86_64-vars.bin
+#   Fedora / RHEL (edk2-ovmf):
+#     /usr/share/edk2/ovmf/OVMF_CODE.fd
+#     /usr/share/edk2/ovmf/OVMF_VARS.fd
+#   Debian / Ubuntu (ovmf); prefer the 4M images on current releases:
+#     /usr/share/OVMF/OVMF_CODE_4M.fd
+#     /usr/share/OVMF/OVMF_VARS_4M.fd
+#     older: OVMF_CODE.fd / OVMF_VARS.fd in the same directory
+#   Arch (edk2-ovmf):
+#     /usr/share/edk2/x64/OVMF_CODE.4m.fd
+#     /usr/share/edk2/x64/OVMF_VARS.4m.fd
+#   macOS Homebrew:
+#     /opt/homebrew/share/qemu/edk2-x86_64-code.fd   (Apple Silicon)
+#     /opt/homebrew/share/qemu/edk2-i386-vars.fd
+#     /usr/local/share/qemu/...                      (Intel)
+#
+# qemu-system-x86_64 is usually on PATH (/usr/bin on Linux; Homebrew bin on macOS).
 
 variable "install_media" {
   type        = string
@@ -42,25 +65,25 @@ variable "headless" {
 variable "accelerator" {
   type        = string
   default     = "tcg"
-  description = "QEMU accelerator. tcg is required to run this x86_64 image on Apple Silicon. Use kvm on an x86_64 Linux host."
+  description = "QEMU accelerator. kvm on an x86_64 Linux host with /dev/kvm; tcg on Apple Silicon (x86_64 guest); hvf only for a native-arch macOS guest."
 }
 
 variable "qemu_binary" {
   type        = string
   default     = "qemu-system-x86_64"
-  description = "QEMU binary. Must match the guest architecture of the VMDK (x86_64)."
+  description = "QEMU binary for the guest arch (x86_64). Linux: /usr/bin/qemu-system-x86_64. macOS Homebrew: /opt/homebrew/bin or /usr/local/bin."
 }
 
 variable "efi_firmware_code" {
   type        = string
   default     = "/opt/homebrew/share/qemu/edk2-x86_64-code.fd"
-  description = "OVMF code pflash. Do not pass this via -bios; QEMU 11 cannot load the 4MiB Homebrew firmware that way."
+  description = "OVMF CODE pflash (not -bios). Default is Homebrew on Apple Silicon; on Linux pass the CODE file from the comment at the top of this file (or use make)."
 }
 
 variable "efi_firmware_vars" {
   type        = string
   default     = "/opt/homebrew/share/qemu/edk2-i386-vars.fd"
-  description = "OVMF vars template. Homebrew pairs this with edk2-x86_64-code.fd."
+  description = "OVMF VARS template, paired with efi_firmware_code. Must match CODE size (do not mix 2M and 4M images)."
 }
 
 variable "machine_type" {

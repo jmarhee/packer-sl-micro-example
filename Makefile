@@ -4,9 +4,15 @@
 #   make vmdk
 #   make test          # boot qcow2 output, SSH, cat /etc/os-release
 #
-# Extra Packer vars:  make qcow2 PACKER_ARGS='-var accelerator=kvm'
+# Extra Packer vars:  make vmdk PACKER_ARGS='-var disk_interface=scsi'
+# Firmware:           make vmdk EFI_CODE=/path/to/CODE EFI_VARS=/path/to/VARS
 
+ifneq ($(wildcard /opt/homebrew/bin/qemu-system-x86_64),)
 export PATH := /opt/homebrew/bin:$(PATH)
+endif
+ifneq ($(wildcard /usr/local/bin/qemu-system-x86_64),)
+export PATH := /usr/local/bin:$(PATH)
+endif
 
 PACKER      ?= packer
 QEMU        ?= qemu-system-x86_64
@@ -18,13 +24,34 @@ ROOT        := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 QCOW2_OUT   := $(ROOT)/qcow2/output/$(OUTPUT_NAME)/$(OUTPUT_NAME).qcow2
 VMDK_OUT    := $(ROOT)/vmdk/output/$(OUTPUT_NAME)/$(OUTPUT_NAME).vmdk
 
-ACCEL       ?= tcg
+# kvm when the host can use it; tcg otherwise (Apple Silicon x86_64 guest).
+ACCEL ?= $(if $(wildcard /dev/kvm),kvm,tcg)
+
+# First existing CODE/VARS pair. See qcow2/variables.pkr.hcl for distro notes.
+EFI_CODE ?= $(firstword $(wildcard \
+	/usr/share/qemu/ovmf-x86_64-code.bin \
+	/usr/share/edk2/ovmf/OVMF_CODE.fd \
+	/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+	/usr/share/OVMF/OVMF_CODE_4M.fd \
+	/usr/share/OVMF/OVMF_CODE.fd \
+	/opt/homebrew/share/qemu/edk2-x86_64-code.fd \
+	/usr/local/share/qemu/edk2-x86_64-code.fd))
+EFI_VARS ?= $(firstword $(wildcard \
+	/usr/share/qemu/ovmf-x86_64-vars.bin \
+	/usr/share/edk2/ovmf/OVMF_VARS.fd \
+	/usr/share/edk2/x64/OVMF_VARS.4m.fd \
+	/usr/share/OVMF/OVMF_VARS_4M.fd \
+	/usr/share/OVMF/OVMF_VARS.fd \
+	/opt/homebrew/share/qemu/edk2-i386-vars.fd \
+	/usr/local/share/qemu/edk2-i386-vars.fd))
+
+PACKER_HOST_VARS := -var qemu_binary=$(QEMU) -var accelerator=$(ACCEL) \
+	-var efi_firmware_code=$(EFI_CODE) -var efi_firmware_vars=$(EFI_VARS)
+
 MEMORY_MB   ?= 2048
 CPUS        ?= 2
 SSH_PORT    ?= 2222
 SSH_KEY     ?= $(HOME)/.ssh/id_rsa
-EFI_CODE    ?= /opt/homebrew/share/qemu/edk2-x86_64-code.fd
-EFI_VARS    ?= /opt/homebrew/share/qemu/edk2-i386-vars.fd
 TEST_DIR    ?= /tmp/sle-micro-packer-test
 SSH_OPTS    := -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o BatchMode=yes
 
@@ -37,11 +64,11 @@ help:
 
 qcow2:
 	cd $(ROOT)/qcow2 && $(PACKER) init .
-	cd $(ROOT)/qcow2 && $(PACKER) build -force -var qemu_binary=$(QEMU) $(PACKER_ARGS) .
+	cd $(ROOT)/qcow2 && $(PACKER) build -force $(PACKER_HOST_VARS) $(PACKER_ARGS) .
 
 vmdk:
 	cd $(ROOT)/vmdk && $(PACKER) init .
-	cd $(ROOT)/vmdk && $(PACKER) build -force -var qemu_binary=$(QEMU) $(PACKER_ARGS) .
+	cd $(ROOT)/vmdk && $(PACKER) build -force $(PACKER_HOST_VARS) $(PACKER_ARGS) .
 
 test:
 	@test -f "$(QCOW2_OUT)" || { echo "missing $(QCOW2_OUT); run make qcow2 first"; exit 1; }
