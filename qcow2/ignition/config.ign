@@ -1,0 +1,48 @@
+{
+  "ignition": {
+    "version": "3.4.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "name": "root",
+        "sshAuthorizedKeys": [
+          "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDkwdzIMre3GyX0vgVK9cGSoH5Ij92t22KBoxL7QZHxvmMP5Ay/8pAsqL92ujGN5Zt8fkQQeZA3ew0o8Yw71yTGeiuz8yr0f9TQTaOj/0jbFFm1wVfuc7oscZ84wCiZ1+mPyJ19DwR7vBj2MMYf3FMbTei2icaQsR4C/ovaNP147Ym7+mU/oZCZkLogBx2Z33xBintbv8k9kcKwMk2Z+CRFGi7xNUxbnBAATdzOI3Nx6jUGg3pMJAYMMeiJKIA8hYUVIBALQO1M3kCYdyXhfMdNFSoRM2c4gXzzZsVhkC27q1HpI4JalzCzpo2Rmov03DiczxO0Kz3vpJ9eD38x13i/ jmarhee@iampizza-2.local"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "files": [
+      {
+        "overwrite": true,
+        "path": "/etc/ssh/sshd_config.d/00-disable-password-auth.conf",
+        "mode": 420,
+        "contents": {
+          "source": "data:text/plain;base64,IyBEaXNhYmxlIHBhc3N3b3JkIGFuZCBrZXlib2FyZC1pbnRlcmFjdGl2ZSBTU0ggYXV0aGVudGljYXRpb24gZm9yIGFsbCB1c2Vycy4KIyBPcGVuU1NIIGtlZXBzIHRoZSBmaXJzdCB2YWx1ZSBpdCBzZWVzLiBzc2hkX2NvbmZpZyB0eXBpY2FsbHkgSW5jbHVkZXMKIyBzc2hkX2NvbmZpZy5kLyouY29uZiBiZWZvcmUgdGhlIHJlc3Qgb2YgdGhlIGZpbGUsIHNvIGEgMDAtIGRyb3AtaW4gd2lucwojIG92ZXIgYm90aCBsYXRlciBkcm9wLWlucyBhbmQgdGhlIGRpc3RybyBzc2hkX2NvbmZpZy4KUGFzc3dvcmRBdXRoZW50aWNhdGlvbiBubwpLYmRJbnRlcmFjdGl2ZUF1dGhlbnRpY2F0aW9uIG5vCkNoYWxsZW5nZVJlc3BvbnNlQXV0aGVudGljYXRpb24gbm8K"
+        }
+      },
+      {
+        "overwrite": true,
+        "path": "/etc/packer-bake-pending",
+        "mode": 384,
+        "contents": {
+          "source": "data:,"
+        }
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "enabled": true,
+        "name": "sshd.service"
+      },
+      {
+        "enabled": true,
+        "name": "packer-poweroff.service",
+        "contents": "[Unit]\nDescription=Power off once after Packer bake\nAfter=multi-user.target\nConditionPathExists=/etc/packer-bake-pending\n\n[Service]\nType=oneshot\nExecStart=/bin/rm -f /etc/packer-bake-pending\nExecStart=/usr/sbin/poweroff\n\n[Install]\nWantedBy=multi-user.target\n"
+      }
+    ]
+  }
+}

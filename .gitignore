@@ -1,0 +1,17 @@
+# Packer / QEMU artifacts
+output/
+packer_cache/
+crash.log
+qemu-serial.log
+serial.sock
+
+# Disk and firmware images (source GM, bake artifacts, OVMF vars copies)
+*.qcow2
+*.raw
+*.img
+*.iso
+*.vmdk
+*.vdi
+*.fd
+
+.DS_Store
